@@ -1,0 +1,67 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, classification_report
+
+# Step 1: Load the dataset
+# Replace 'email.csv' with the path to your dataset file
+df = pd.read_csv('/content/emails.csv')
+df
+
+# Step 2: Data Preprocessing
+# Drop the 'Email No.' column as it is not a feature
+df = df.drop(columns=['Email No.'])
+
+# Separate features and labels
+X = df.drop(columns=['Prediction'])  # Features
+y = df['Prediction']  # Labels (0 for not spam, 1 for spam)
+
+# Step 3: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 4: Train K-Nearest Neighbors Classifier
+knn = KNeighborsClassifier(n_neighbors=5)  # You can tune this parameter
+knn.fit(X_train, y_train)
+
+# Predict and evaluate KNN model
+y_pred_knn = knn.predict(X_test)
+knn_accuracy = accuracy_score(y_test, y_pred_knn)
+knn_precision = precision_score(y_test, y_pred_knn)
+knn_recall = recall_score(y_test, y_pred_knn)
+knn_f1 = f1_score(y_test, y_pred_knn)
+knn_auc = roc_auc_score(y_test, y_pred_knn)
+
+print("K-Nearest Neighbors Model Performance:")
+print(f"Accuracy: {knn_accuracy:.4f}")
+print(f"Precision: {knn_precision:.4f}")
+print(f"Recall: {knn_recall:.4f}")
+print(f"F1 Score: {knn_f1:.4f}")
+print(f"ROC-AUC Score: {knn_auc:.4f}")
+print("\nClassification Report for KNN:\n", classification_report(y_test, y_pred_knn))
+
+# Step 5: Train Support Vector Machine Classifier
+svm = SVC(kernel='linear', probability=True)  # Using a linear kernel
+svm.fit(X_train, y_train)
+
+# Predict and evaluate SVM model
+y_pred_svm = svm.predict(X_test)
+svm_accuracy = accuracy_score(y_test, y_pred_svm)
+svm_precision = precision_score(y_test, y_pred_svm)
+svm_recall = recall_score(y_test, y_pred_svm)
+svm_f1 = f1_score(y_test, y_pred_svm)
+svm_auc = roc_auc_score(y_test, y_pred_svm)
+
+print("\nSupport Vector Machine Model Performance:")
+print(f"Accuracy: {svm_accuracy:.4f}")
+print(f"Precision: {svm_precision:.4f}")
+print(f"Recall: {svm_recall:.4f}")
+print(f"F1 Score: {svm_f1:.4f}")
+print(f"ROC-AUC Score: {svm_auc:.4f}")
+print("\nClassification Report for SVM:\n", classification_report(y_test, y_pred_svm))
+
+# Analyzing Performance
+if knn_accuracy > svm_accuracy:
+    print("\nK-Nearest Neighbors performed better based on accuracy.")
+else:
+    print("\nSupport Vector Machine performed better based on accuracy.")

@@ -1,0 +1,47 @@
+# Import necessary libraries
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, accuracy_score, precision_score, recall_score
+
+# Load the dataset
+df = pd.read_csv('/content/diabetes.csv')
+df
+
+# Define features and target variable
+X = df.drop('Outcome', axis=1)  # Features
+y = df['Outcome']                # Target variable
+
+# Split the dataset into training and test sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Create KNN classifier
+knn = KNeighborsClassifier(n_neighbors=5)
+
+# Fit the model on training data
+knn.fit(X_train, y_train)
+
+# Make predictions on the test data
+y_pred = knn.predict(X_test)
+
+# Compute confusion matrix
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+
+# Calculate error rate
+error_rate = 1 - accuracy
+
+# Calculate precision
+precision = precision_score(y_test, y_pred)
+
+# Calculate recall
+recall = recall_score(y_test, y_pred)
+
+# Print the evaluation metrics
+print("Confusion Matrix:\n", conf_matrix)
+print("Accuracy: {:.2f}".format(accuracy))
+print("Error Rate: {:.2f}".format(error_rate))
+print("Precision: {:.2f}".format(precision))
+print("Recall: {:.2f}".format(recall))

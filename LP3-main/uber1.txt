@@ -1,0 +1,107 @@
+import pandas as pd
+import numpy as np
+
+# Load the dataset
+uber_data = pd.read_csv('/content/uber.csv')
+
+# Drop rows with NaN values in 'fare_amount' and location columns
+uber_data = uber_data.dropna(subset=['fare_amount', 'pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude', 'passenger_count'])
+
+# Remove rows with invalid 'fare_amount' (e.g., negative fares)
+uber_data = uber_data[uber_data['fare_amount'] > 0]
+
+# Filter out invalid or extreme longitude and latitude values
+uber_data = uber_data[
+    (uber_data['pickup_longitude'] >= -180) & (uber_data['pickup_longitude'] <= 180) &
+    (uber_data['pickup_latitude'] >= -90) & (uber_data['pickup_latitude'] <= 90) &
+    (uber_data['dropoff_longitude'] >= -180) & (uber_data['dropoff_longitude'] <= 180) &
+    (uber_data['dropoff_latitude'] >= -90) & (uber_data['dropoff_latitude'] <= 90)
+]
+
+# Feature engineering: Calculate distance between pickup and dropoff points using Haversine formula
+from math import radians, cos, sin, asin, sqrt
+
+def haversine(lon1, lat1, lon2, lat2):
+    # Convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # Haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    r = 6371  # Radius of Earth in kilometers
+    return c * r
+
+uber_data['distance'] = uber_data.apply(
+    lambda row: haversine(row['pickup_longitude'], row['pickup_latitude'], row['dropoff_longitude'], row['dropoff_latitude']), axis=1
+)
+
+# Remove rows with zero or very small distances
+uber_data = uber_data[uber_data['distance'] > 0.1]
+
+# Define a function to remove outliers based on IQR
+def remove_outliers(df, column):
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    return df[(df[column] >= lower_bound) & (df[column] <= upper_bound)]
+
+# Remove outliers for selected columns
+uber_data = remove_outliers(uber_data, 'fare_amount')
+uber_data = remove_outliers(uber_data, 'distance')
+uber_data = remove_outliers(uber_data, 'passenger_count')
+
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Correlation matrix
+corr_matrix = uber_data[['fare_amount', 'distance', 'passenger_count']].corr()
+print(corr_matrix)
+
+# Plot the correlation heatmap
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm')
+plt.show()
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Features and target variable
+X = uber_data[['distance', 'passenger_count']]
+y = uber_data['fare_amount']
+
+# Split the data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Linear Regression Model
+lin_reg = LinearRegression()
+lin_reg.fit(X_train, y_train)
+y_pred_lin = lin_reg.predict(X_test)
+
+# Random Forest Model
+rf_reg = RandomForestRegressor(n_estimators=100, random_state=42)
+rf_reg.fit(X_train, y_train)
+y_pred_rf = rf_reg.predict(X_test)
+
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Linear Regression Evaluation
+r2_lin = r2_score(y_test, y_pred_lin)
+rmse_lin = mean_squared_error(y_test, y_pred_lin, squared=False)
+print("Linear Regression R2:", r2_lin)
+print("Linear Regression RMSE:", rmse_lin)
+
+# Random Forest Regression Evaluation
+r2_rf = r2_score(y_test, y_pred_rf)
+rmse_rf = mean_squared_error(y_test, y_pred_rf, squared=False)
+print("Random Forest R2:", r2_rf)
+print("Random Forest RMSE:", rmse_rf)
+
+# Comparison
+if r2_rf > r2_lin:
+    print("Random Forest performs better based on R2 score.")
+else:
+    print("Linear Regression performs better based on R2 score.")
