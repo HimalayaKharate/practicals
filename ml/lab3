@@ -1,0 +1,75 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, confusion_matrix
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+import matplotlib.pyplot as plt
+
+# Step 1: Read the dataset
+# Load the dataset from the provided Kaggle CSV file path
+data = pd.read_csv('Churn_Modelling.csv')
+
+# Step 2: Distinguish the feature and target set
+# Drop unnecessary columns like CustomerId, RowNumber, and Surname
+X = data.drop(columns=['RowNumber', 'CustomerId', 'Surname', 'Exited'])
+y = data['Exited']
+
+# One-hot encode the categorical columns 'Geography' and 'Gender'
+X = pd.get_dummies(X, columns=['Geography', 'Gender'], drop_first=True)
+
+# Step 3: Split the dataset into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 4: Normalize the train and test data
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Step 5: Initialize and build the model
+model = Sequential([
+    # Input layer and first hidden layer
+    Dense(64, input_shape=(X_train_scaled.shape[1],), activation='relu'),
+    Dropout(0.5),  # Dropout layer for regularization
+    # Second hidden layer
+    Dense(32, activation='relu'),
+    # Output layer
+    Dense(1, activation='sigmoid')  # Sigmoid activation for binary classification
+])
+
+# Compile the model
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Step 6: Train the model
+history = model.fit(X_train_scaled, y_train, epochs=50, batch_size=32, validation_split=0.2, verbose=1)
+
+# Step 7: Make predictions and evaluate the model
+y_pred = (model.predict(X_test_scaled) > 0.5).astype("int32")
+accuracy = accuracy_score(y_test, y_pred)
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+# Print the accuracy and confusion matrix
+print(f'Accuracy: {accuracy}')
+print('Confusion Matrix:')
+print(conf_matrix)
+
+# Step 8: Plot training history (Accuracy and Loss)
+# Plot training & validation accuracy values
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Model accuracy')
+plt.xlabel('Epoch')
+plt.ylabel('Accuracy')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.show()
+
+# Plot training & validation loss values
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.legend(['Train', 'Test'], loc='upper left')
+plt.show()

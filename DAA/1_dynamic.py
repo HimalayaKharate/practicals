@@ -25,7 +25,7 @@ def knapsack_01(weights, values, capacity):
 # Example usage
 weights = [10, 20, 30]
 values = [60, 100, 120]
-capacity = 5
+capacity = 50
 
 max_value = knapsack_01(weights, values, capacity)
 print(f"Maximum value achievable in the knapsack: {max_value}")
